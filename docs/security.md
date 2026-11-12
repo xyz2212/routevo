@@ -31,6 +31,10 @@ administrator session. Authenticator secrets are encrypted at rest using
 Generate a unique 32-byte key, Base64-encode it, and keep it in protected
 deployment configuration. Losing this key makes stored authenticator secrets
 unusable. Recovery codes are shown only once during enrollment.
+Only authenticated administrators can invite additional administrators.
+Invitation links expire after one hour, are single-use, and can only be used
+for email addresses that do not already have an account. Invitees set their
+own password and must enroll TOTP before receiving administrator access.
 
 Verified customers can submit one metadata-only driver application with their
 vehicle type and service area. Their existing account name, email, and optional

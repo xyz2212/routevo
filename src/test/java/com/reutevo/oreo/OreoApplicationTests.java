@@ -13,6 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import jakarta.servlet.http.Cookie;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,7 +23,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.TestSecurityContextHolder;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -33,14 +37,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.mail.MailSendException;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -66,6 +70,27 @@ class OreoApplicationTests {
 
 	@Autowired
 	private TestIdentityEmailDelivery emailDelivery;
+
+	private Cookie apiCsrfCookie;
+	private String apiCsrfHeaderName;
+	private String apiCsrfToken;
+
+	@BeforeEach
+	void initializeApiCsrfToken() throws Exception {
+		MvcResult csrfResult = mockMvc.perform(get("/api/auth/csrf"))
+				.andExpect(status().isOk())
+				.andReturn();
+		apiCsrfCookie = csrfResult.getResponse().getCookie("XSRF-TOKEN");
+		var csrfResponse = new ObjectMapper().readTree(csrfResult.getResponse().getContentAsString());
+		apiCsrfHeaderName = csrfResponse.get("headerName").asText();
+		apiCsrfToken = csrfResponse.get("token").asText();
+	}
+
+	@AfterEach
+	void clearSecurityContextBetweenRequests() {
+		SecurityContextHolder.clearContext();
+		TestSecurityContextHolder.clearContext();
+	}
 
 	@DynamicPropertySource
 	static void identityProperties(DynamicPropertyRegistry registry) {
@@ -180,10 +205,12 @@ class OreoApplicationTests {
 		IdentityUser unverifiedUser = users.findById("alex@example.test").orElseThrow();
 		assertTrue(unverifiedUser.isEnabled());
 		org.junit.jupiter.api.Assertions.assertFalse(unverifiedUser.isEmailVerified());
+		FormCsrf formCsrf = formCsrf();
 		mockMvc.perform(post("/login")
 						.param("username", "alex@example.test")
 						.param("password", "CorrectHorseBattery9!")
-						.with(csrf()))
+						.session(formCsrf.session())
+						.param("_csrf", formCsrf.token()))
 				.andExpect(redirectedUrl("/login?error"));
 
 		mockMvc.perform(post("/api/auth/verify-email")
@@ -207,7 +234,8 @@ class OreoApplicationTests {
 		mockMvc.perform(post("/login")
 						.param("username", "alex@example.test")
 						.param("password", "CorrectHorseBattery9!")
-						.with(csrf()))
+						.session(formCsrf.session())
+						.param("_csrf", formCsrf.token()))
 				.andExpect(redirectedUrl("/"));
 	}
 
@@ -256,10 +284,12 @@ class OreoApplicationTests {
 								{"token": "%s", "password": "ChangedPassword9!"}
 								""".formatted(resetToken)))
 				.andExpect(status().isBadRequest());
+		FormCsrf formCsrf = formCsrf();
 		mockMvc.perform(post("/login")
 						.param("username", "reset@example.test")
 						.param("password", "ChangedPassword9!")
-						.with(csrf()))
+						.session(formCsrf.session())
+						.param("_csrf", formCsrf.token()))
 				.andExpect(redirectedUrl("/"));
 	}
 
@@ -268,10 +298,12 @@ class OreoApplicationTests {
 		IdentityUser user = users.findById("admin@example.test").orElseThrow();
 		assertTrue(passwordEncoder.matches("test-password", user.getPassword()));
 
+		FormCsrf formCsrf = formCsrf();
 		MvcResult formLogin = mockMvc.perform(post("/login")
 						.param("username", "admin@example.test")
 						.param("password", "test-password")
-						.with(csrf()))
+						.session(formCsrf.session())
+						.param("_csrf", formCsrf.token()))
 				.andExpect(redirectedUrl("/app/#/login"))
 				.andReturn();
 		mockMvc.perform(get("/api/auth/me")
@@ -281,7 +313,8 @@ class OreoApplicationTests {
 
 	@Test
 	void browserCanUseTheSessionBffForLoginProfileAndLogout() throws Exception {
-		MvcResult csrfResult = mockMvc.perform(get("/api/auth/csrf"))
+		MockHttpSession browserSession = new MockHttpSession();
+		MvcResult csrfResult = mockMvc.perform(get("/api/auth/csrf").session(browserSession))
 				.andExpect(status().isOk())
 				.andReturn();
 		Cookie csrfCookie = csrfResult.getResponse().getCookie("XSRF-TOKEN");
@@ -290,6 +323,7 @@ class OreoApplicationTests {
 				.get("token").asText();
 		mockMvc.perform(post("/api/auth/register")
 						.cookie(csrfCookie)
+						.session(browserSession)
 						.header("X-XSRF-TOKEN", csrfToken)
 						.contentType("application/json")
 						.content("""
@@ -302,6 +336,7 @@ class OreoApplicationTests {
 				.andExpect(status().isAccepted());
 		mockMvc.perform(post("/api/auth/verify-email")
 						.cookie(csrfCookie)
+						.session(browserSession)
 						.header("X-XSRF-TOKEN", csrfToken)
 						.contentType("application/json")
 						.content("""
@@ -311,6 +346,7 @@ class OreoApplicationTests {
 
 		MvcResult login = mockMvc.perform(post("/api/auth/login")
 						.cookie(csrfCookie)
+						.session(browserSession)
 						.header("X-XSRF-TOKEN", csrfToken)
 						.contentType("application/json")
 						.content("""
@@ -434,6 +470,72 @@ class OreoApplicationTests {
 		mockMvc.perform(get("/api/auth/me").session(driverSession))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.roles").value(org.hamcrest.Matchers.contains("CUSTOMER")));
+	}
+
+	@Test
+	void invitedAdministratorMustAcceptInvitationAndEnrollMfaBeforeAdminAccess() throws Exception {
+		mockMvc.perform(post("/api/auth/admin/invitations")
+						.with(csrf())
+						.with(user("admin@example.test").roles("ADMIN"))
+						.contentType("application/json")
+						.content("""
+								{"email": "invited-admin@example.test"}
+								"""))
+				.andExpect(status().isAccepted());
+
+		String invitationToken = emailDelivery.lastAdminInvitation().token();
+		mockMvc.perform(post("/api/auth/admin/invitations")
+						.with(csrf())
+						.with(user("admin@example.test").roles("ADMIN"))
+						.contentType("application/json")
+						.content("""
+								{"email": "admin@example.test"}
+								"""))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.message").value("An account already uses this email address."));
+		mockMvc.perform(post("/api/auth/admin/invitations")
+						.with(csrf())
+						.contentType("application/json")
+						.content("""
+								{"email": "public@example.test"}
+								"""))
+				.andExpect(status().isUnauthorized());
+		mockMvc.perform(post("/api/auth/accept-admin-invitation")
+						.with(csrf())
+						.contentType("application/json")
+						.content("""
+								{
+								  "token": "%s",
+								  "name": "Invited Admin",
+								  "password": "InvitedAdminPassword9!"
+								}
+								""".formatted(invitationToken)))
+				.andExpect(status().isOk());
+		mockMvc.perform(post("/api/auth/accept-admin-invitation")
+						.with(csrf())
+						.contentType("application/json")
+						.content("""
+								{
+								  "token": "%s",
+								  "name": "Invited Admin",
+								  "password": "InvitedAdminPassword9!"
+								}
+								""".formatted(invitationToken)))
+				.andExpect(status().isBadRequest());
+
+		MvcResult setupLogin = mockMvc.perform(post("/api/auth/login")
+						.with(csrf())
+						.contentType("application/json")
+						.content("""
+								{"email": "invited-admin@example.test", "password": "InvitedAdminPassword9!"}
+								"""))
+				.andExpect(status().isAccepted())
+				.andExpect(jsonPath("$.stage").value("MFA_SETUP_REQUIRED"))
+				.andReturn();
+		MockHttpSession setupSession = (MockHttpSession) setupLogin.getRequest().getSession(false);
+		mockMvc.perform(get("/api/auth/me").session(setupSession))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.roles.length()").value(0));
 	}
 
 	@Test
@@ -627,6 +729,28 @@ class OreoApplicationTests {
 				.andExpect(jsonPath("$.issuer").value(ISSUER));
 	}
 
+	private RequestPostProcessor csrf() {
+		return request -> {
+			request.setCookies(apiCsrfCookie);
+			request.addHeader(apiCsrfHeaderName, apiCsrfToken);
+			return request;
+		};
+	}
+
+	private FormCsrf formCsrf() throws Exception {
+		MvcResult result = mockMvc.perform(get("/login"))
+				.andExpect(status().isOk())
+				.andReturn();
+		java.util.regex.Matcher matcher = java.util.regex.Pattern
+				.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"")
+				.matcher(result.getResponse().getContentAsString());
+		assertTrue(matcher.find(), "The login page should expose its session CSRF token.");
+		return new FormCsrf((MockHttpSession) result.getRequest().getSession(false), matcher.group(1));
+	}
+
+	private record FormCsrf(MockHttpSession session, String token) {
+	}
+
 	@Test
 	void jwksEndpointPublishesOnlyThePublicSigningKey() throws Exception {
 		mockMvc.perform(get("/oauth2/jwks"))
@@ -703,6 +827,7 @@ class OreoApplicationTests {
 	static class TestIdentityEmailDelivery implements IdentityEmailDelivery {
 		private volatile DeliveredEmail lastVerification;
 		private volatile DeliveredEmail lastPasswordReset;
+		private volatile DeliveredEmail lastAdminInvitation;
 		private volatile boolean failNext;
 
 		@Override
@@ -719,6 +844,11 @@ class OreoApplicationTests {
 			lastPasswordReset = new DeliveredEmail(email, token);
 		}
 
+		@Override
+		public void sendAdministratorInvitation(String email, String token) {
+			lastAdminInvitation = new DeliveredEmail(email, token);
+		}
+
 		DeliveredEmail lastVerification() {
 			if (lastVerification == null) {
 				throw new AssertionError("No verification email was delivered");
@@ -731,6 +861,13 @@ class OreoApplicationTests {
 				throw new AssertionError("No password reset email was delivered");
 			}
 			return lastPasswordReset;
+		}
+
+		DeliveredEmail lastAdminInvitation() {
+			if (lastAdminInvitation == null) {
+				throw new AssertionError("No administrator invitation was delivered");
+			}
+			return lastAdminInvitation;
 		}
 
 		void failNextDelivery() {

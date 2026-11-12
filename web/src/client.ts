@@ -94,4 +94,8 @@ export const accountApi = {
     request<DriverApplication[]>("/api/auth/admin/driver-applications", "GET"),
   reviewDriverApplication: (id: string, outcome: DriverApplicationReviewOutcome) =>
     request<DriverApplication>(`/api/auth/admin/driver-applications/${id}/review`, "POST", { outcome }),
+  inviteAdministrator: (email: string) =>
+    request<Message>("/api/auth/admin/invitations", "POST", { email }),
+  acceptAdministratorInvitation: (token: string, name: string, password: string) =>
+    request<Message>("/api/auth/accept-admin-invitation", "POST", { token, name, password }),
 };

@@ -174,10 +174,10 @@ public class SecurityConfiguration {
 						.requestMatchers("/api/auth/register", "/api/auth/verify-email",
 								"/api/auth/resend-verification", "/api/auth/forgot-password",
 								"/api/auth/reset-password", "/api/auth/login", "/api/auth/csrf",
-								"/api/auth/mfa/verify").permitAll()
+								"/api/auth/mfa/verify", "/api/auth/accept-admin-invitation").permitAll()
 						.requestMatchers("/api/auth/mfa/enrollment",
 								"/api/auth/mfa/enrollment/confirm").hasAuthority("MFA_SETUP_REQUIRED")
-						.requestMatchers("/api/auth/admin/driver-applications/**").hasRole("ADMIN")
+						.requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
 						.requestMatchers("/api/auth/driver-application").hasRole("CUSTOMER")
 						.anyRequest().authenticated())
 				.securityContext(securityContext -> securityContext

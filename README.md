@@ -14,7 +14,7 @@ Boot, PostgreSQL, and a React account interface.
    `npm run dev`.
 
 The current UI supports account registration, email verification, sign-in,
-password recovery, administrator TOTP MFA, and metadata-only driver
-applications/review. Driver activation and delivery operations are not enabled.
+password recovery, administrator invitations and TOTP MFA, and metadata-only
+driver applications/review. Driver activation and delivery operations are not enabled.
 Read the [onboarding guide](./docs/onboarding.md) for the current status of
 customer, driver, and administrator paths.

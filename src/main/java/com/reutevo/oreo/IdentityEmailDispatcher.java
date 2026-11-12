@@ -26,6 +26,7 @@ public class IdentityEmailDispatcher {
 						emailDelivery.sendVerification(event.email(), event.displayName(), event.token());
 				case PASSWORD_RESET ->
 						emailDelivery.sendPasswordReset(event.email(), event.displayName(), event.token());
+				case ADMIN_INVITATION -> emailDelivery.sendAdministratorInvitation(event.email(), event.token());
 			}
 		}
 		catch (MailException exception) {

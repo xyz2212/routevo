@@ -31,6 +31,13 @@ CREATE TABLE IF NOT EXISTS identity_driver_applications (
     reviewed_at TIMESTAMP WITH TIME ZONE
 );
 
+CREATE TABLE IF NOT EXISTS identity_admin_invitations (
+    email VARCHAR(254) PRIMARY KEY,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    accepted_at TIMESTAMP WITH TIME ZONE
+);
+
 CREATE TABLE IF NOT EXISTS identity_action_tokens (
     id UUID PRIMARY KEY,
     username VARCHAR(254) NOT NULL REFERENCES identity_users(username) ON DELETE CASCADE,

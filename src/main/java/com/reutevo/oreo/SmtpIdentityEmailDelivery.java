@@ -31,6 +31,11 @@ public class SmtpIdentityEmailDelivery implements IdentityEmailDelivery {
 		send(email, "Reset your Routevo password", "reset", token);
 	}
 
+	@Override
+	public void sendAdministratorInvitation(String email, String token) {
+		send(email, "Your Routevo administrator invitation", "admin-invite", token);
+	}
+
 	private void send(String email, String subject, String path, String token) {
 		String baseUrl = frontendUrl.endsWith("/")
 				? frontendUrl.substring(0, frontendUrl.length() - 1)

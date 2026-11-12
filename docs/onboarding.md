@@ -31,7 +31,9 @@ only.
 
 The initial administrator account is provisioned from protected deployment
 configuration. On first sign-in, enroll an authenticator app and save the
-one-time recovery codes in a private location. Driver applications can be
-reviewed from the onboarding panel; review decisions do not activate driver
-accounts. Do not share administrator credentials or use them for day-to-day
-customer activity. Delivery booking and live operations remain disabled.
+one-time recovery codes in a private location. Administrators can invite
+additional administrators by email; invitees choose a password and must enroll
+MFA before receiving admin access. Driver applications can be reviewed from
+the onboarding panel; review decisions do not activate driver accounts. Do not
+share administrator credentials or use them for day-to-day customer activity.
+Delivery booking and live operations remain disabled.

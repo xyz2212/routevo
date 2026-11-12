@@ -66,6 +66,7 @@ public class IdentityActionToken {
 
 	public enum Purpose {
 		EMAIL_VERIFICATION,
-		PASSWORD_RESET
+		PASSWORD_RESET,
+		ADMIN_INVITATION
 	}
 }

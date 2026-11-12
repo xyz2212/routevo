@@ -48,6 +48,7 @@ public class IdentityAccountController {
 	private final IdentityUserRepository users;
 	private final IdentityMfaService mfa;
 	private final IdentityDriverApplicationService driverApplications;
+	private final IdentityAdminInvitationService adminInvitations;
 	private final DatabaseUserDetailsService userDetailsService;
 	private final AuthenticationManager authenticationManager;
 	private final SecurityContextRepository securityContextRepository;
@@ -60,6 +61,7 @@ public class IdentityAccountController {
 			IdentityUserRepository users,
 			IdentityMfaService mfa,
 			IdentityDriverApplicationService driverApplications,
+			IdentityAdminInvitationService adminInvitations,
 			DatabaseUserDetailsService userDetailsService,
 			AuthenticationConfiguration authenticationConfiguration,
 			SecurityContextRepository securityContextRepository,
@@ -70,6 +72,7 @@ public class IdentityAccountController {
 		this.users = users;
 		this.mfa = mfa;
 		this.driverApplications = driverApplications;
+		this.adminInvitations = adminInvitations;
 		this.userDetailsService = userDetailsService;
 		this.authenticationManager = authenticationConfiguration.getAuthenticationManager();
 		this.securityContextRepository = securityContextRepository;
@@ -294,6 +297,35 @@ public class IdentityAccountController {
 		return driverApplications.review(id, request.outcome(), authentication.getName());
 	}
 
+	@PostMapping("/admin/invitations")
+	public ResponseEntity<GenericMessage> inviteAdministrator(
+			@Valid @RequestBody AdminInvitationRequest request,
+			Authentication authentication,
+			HttpServletRequest servletRequest) {
+		if (!rateLimits.allow("admin-invitation", request.email(), remoteAddress(servletRequest))) {
+			return rateLimited();
+		}
+		if (!adminInvitations.invite(request.email())) {
+			return ResponseEntity.status(HttpStatus.CONFLICT)
+					.body(new GenericMessage("An account already uses this email address."));
+		}
+		return ResponseEntity.accepted().body(new GenericMessage("The administrator invitation has been sent."));
+	}
+
+	@PostMapping("/accept-admin-invitation")
+	public ResponseEntity<GenericMessage> acceptAdministratorInvitation(
+			@Valid @RequestBody AdminInvitationAcceptanceRequest request,
+			HttpServletRequest servletRequest) {
+		if (!rateLimits.allow("accept-admin-invitation", null, remoteAddress(servletRequest))) {
+			return rateLimited();
+		}
+		if (!adminInvitations.accept(request.token(), request.name(), request.password())) {
+			return ResponseEntity.badRequest()
+					.body(new GenericMessage("The administrator invitation is invalid or expired."));
+		}
+		return ResponseEntity.ok(new GenericMessage("Administrator account created. Sign in to set up MFA."));
+	}
+
 	@PostMapping("/register")
 	public ResponseEntity<GenericMessage> register(
 			@Valid @RequestBody RegistrationRequest request, HttpServletRequest servletRequest) {
@@ -380,6 +412,20 @@ public class IdentityAccountController {
 
 	public record ResetPasswordRequest(
 			@NotBlank String token,
+			@NotBlank @Size(min = 12, max = 72) String password) {
+		@AssertTrue(message = "Password exceeds the supported UTF-8 byte limit")
+		public boolean isPasswordWithinBcryptLimit() {
+			return PasswordPolicy.fitsBcrypt(password);
+		}
+	}
+
+	public record AdminInvitationRequest(
+			@NotBlank @Email @Size(max = 254) String email) {
+	}
+
+	public record AdminInvitationAcceptanceRequest(
+			@NotBlank String token,
+			@NotBlank @Size(max = 120) String name,
 			@NotBlank @Size(min = 12, max = 72) String password) {
 		@AssertTrue(message = "Password exceeds the supported UTF-8 byte limit")
 		public boolean isPasswordWithinBcryptLimit() {

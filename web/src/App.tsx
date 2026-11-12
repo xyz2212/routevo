@@ -16,13 +16,14 @@ type Page =
   | "mfa"
   | "mfa-setup"
   | "mfa-recovery"
-  | "onboarding";
+  | "onboarding"
+  | "admin-invite";
 
 function currentPage(): Page {
   const path = window.location.hash.split("?")[0].replace(/^#\/?/, "");
   const known: Page[] = [
     "login", "register", "forgot", "verify", "reset",
-    "mfa", "mfa-setup", "mfa-recovery", "onboarding",
+    "mfa", "mfa-setup", "mfa-recovery", "onboarding", "admin-invite",
   ];
   return known.includes(path as Page) ? (path as Page) : "login";
 }
@@ -39,6 +40,31 @@ function driverVehicleType(form: FormData): DriverVehicleType {
     case "VAN": return "VAN";
     default: throw new Error("Select a vehicle type.");
   }
+}
+
+function DriverApplicationFields({
+  vehicleType = "",
+  serviceArea = "",
+}: {
+  vehicleType?: DriverVehicleType | "";
+  serviceArea?: string;
+}) {
+  return (
+    <>
+      <label>Vehicle type
+        <select name="vehicleType" defaultValue={vehicleType} required>
+          <option value="" disabled>Select a vehicle</option>
+          <option value="BICYCLE">Bicycle</option>
+          <option value="MOTORCYCLE">Motorcycle</option>
+          <option value="CAR">Car</option>
+          <option value="VAN">Van</option>
+        </select>
+      </label>
+      <label>Hong Kong service area
+        <input name="serviceArea" defaultValue={serviceArea} maxLength={120} placeholder="Districts you can serve" required />
+      </label>
+    </>
+  );
 }
 
 export default function App() {
@@ -217,6 +243,27 @@ export default function App() {
             <nav><a href="#/login">Back to sign in</a></nav>
           </>
         )}
+        {page === "admin-invite" && (
+          <>
+            <h1>Accept your administrator invitation</h1>
+            <p>Choose your account name and password. Authenticator setup will be required when you sign in.</p>
+            <form onSubmit={(event) => void submit(event, async (form) => {
+              await perform(
+                () => accountApi.acceptAdministratorInvitation(
+                  tokenFromHash(),
+                  String(form.get("name")),
+                  String(form.get("password")),
+                ),
+                "Your administrator account is ready. Sign in to set up MFA.",
+              );
+            })}>
+              <label>Full name<input name="name" autoComplete="name" maxLength={120} required /></label>
+              <label>Password<input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={72} required /></label>
+              <button disabled={busy}>Accept invitation</button>
+            </form>
+            <nav><a href="#/login">Back to sign in</a></nav>
+          </>
+        )}
         {page === "mfa-setup" && (
           <>
             <h1>Secure your administrator account</h1>
@@ -291,17 +338,10 @@ export default function App() {
                           setDriverApplication(updated);
                         }, "Your updated application has been sent for review.");
                       })}>
-                        <label>Vehicle type
-                          <select name="vehicleType" defaultValue={driverApplication.vehicleType} required>
-                            <option value="BICYCLE">Bicycle</option>
-                            <option value="MOTORCYCLE">Motorcycle</option>
-                            <option value="CAR">Car</option>
-                            <option value="VAN">Van</option>
-                          </select>
-                        </label>
-                        <label>Hong Kong service area
-                          <input name="serviceArea" defaultValue={driverApplication.serviceArea} maxLength={120} required />
-                        </label>
+                        <DriverApplicationFields
+                          vehicleType={driverApplication.vehicleType}
+                          serviceArea={driverApplication.serviceArea}
+                        />
                         <button disabled={busy}>Update application</button>
                       </form>
                     </>
@@ -323,18 +363,7 @@ export default function App() {
                       setDriverApplication(created);
                     }, "Your driver application has been submitted for review.");
                   })}>
-                    <label>Vehicle type
-                      <select name="vehicleType" defaultValue="" required>
-                        <option value="" disabled>Select a vehicle</option>
-                        <option value="BICYCLE">Bicycle</option>
-                        <option value="MOTORCYCLE">Motorcycle</option>
-                        <option value="CAR">Car</option>
-                        <option value="VAN">Van</option>
-                      </select>
-                    </label>
-                    <label>Hong Kong service area
-                      <input name="serviceArea" maxLength={120} placeholder="Districts you can serve" required />
-                    </label>
+                    <DriverApplicationFields />
                     <button disabled={busy}>Apply to drive</button>
                   </form>
                 </>
@@ -379,6 +408,19 @@ export default function App() {
             )}
             <h2>Administrator</h2>
             <p>Administrator access is provisioned separately and requires authenticator MFA. Review tools are limited to metadata-only driver applications.</p>
+            {user?.roles.includes("ADMIN") && (
+              <form onSubmit={(event) => void submit(event, async (form) => {
+                await perform(
+                  () => accountApi.inviteAdministrator(String(form.get("email"))),
+                  "If the address can be invited, an administrator invitation email will be sent.",
+                );
+              })}>
+                <label>Invite an administrator
+                  <input name="email" type="email" autoComplete="email" maxLength={254} required />
+                </label>
+                <button disabled={busy}>Send invitation</button>
+              </form>
+            )}
             <p className="callout">Delivery booking and live operations are not enabled in this release.</p>
             <button onClick={() => void perform(accountApi.logout, "You are signed out.")}>Sign out</button>
           </>

@@ -90,6 +90,6 @@ dependencyManagement {
 }
 
 tasks.named('test') {
-  maxParallelForks = Runtime.getRuntime().availableProcessors()
+	maxParallelForks = Runtime.getRuntime().availableProcessors()
 	useJUnitPlatform()
 }

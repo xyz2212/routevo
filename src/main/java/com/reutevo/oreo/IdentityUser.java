@@ -147,6 +147,11 @@ public class IdentityUser {
 				EnumSet.of(IdentityRole.ADMIN), Instant.now());
 	}
 
+	public static IdentityUser invitedAdministrator(String email, String displayName, String encodedPassword) {
+		return new IdentityUser(email, displayName, null, encodedPassword,
+				EnumSet.of(IdentityRole.ADMIN), Instant.now());
+	}
+
 	private IdentityUser(
 			String email,
 			String displayName,
