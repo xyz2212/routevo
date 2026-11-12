@@ -15,4 +15,5 @@ Boot, PostgreSQL, and a React account interface.
 
 The current UI supports account registration, email verification, sign-in, and
 password recovery. Delivery operations, driver onboarding, and administrator
-MFA are not enabled yet.
+MFA are not enabled yet. Read the [onboarding guide](./docs/onboarding.md) for
+the current status of customer, driver, and administrator paths.

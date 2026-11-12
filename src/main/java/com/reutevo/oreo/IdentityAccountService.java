@@ -1,8 +1,5 @@
 package com.reutevo.oreo;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -125,14 +122,7 @@ public class IdentityAccountService {
 	}
 
 	private static String hash(String token) {
-		try {
-			byte[] digest = MessageDigest.getInstance("SHA-256")
-					.digest(token.getBytes(StandardCharsets.UTF_8));
-			return java.util.HexFormat.of().formatHex(digest);
-		}
-		catch (NoSuchAlgorithmException exception) {
-			throw new IllegalStateException("SHA-256 is required by the Java runtime", exception);
-		}
+		return Sha256Hex.digest(token);
 	}
 
 }
