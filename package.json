@@ -1,0 +1,37 @@
+{
+  "name": "routevo",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/xyz2212/routevo#readme",
+  "bugs": {
+    "url": "https://github.com/xyz2212/routevo/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xyz2212/routevo.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "scripts": {
+    "dev": "./gradlew bootRun --spring.profiles.active=development",
+    "dev:web": "vite --config web/vite.config.js",
+    "build:web": "tsc --noEmit -p web/tsconfig.json && vite build --config web/vite.config.js",
+    "typecheck:web": "tsc --noEmit -p web/tsconfig.json",
+    "test": "./gradlew test",
+    "clean": "./gradlew clean",
+    "start:development": "java -jar routevo.jar --spring.profiles.active=development",
+    "start:production": "java -jar routevo.jar --spring.profiles.active=production"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.1.0"
+  }
+}

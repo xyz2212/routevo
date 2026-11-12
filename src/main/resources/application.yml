@@ -1,0 +1,69 @@
+spring:
+  application:
+    name: oreo
+  sql:
+    init:
+      mode: always
+
+  profiles:
+    default: development
+    active: development
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9092}
+
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:25}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:false}
+          starttls:
+            enable: ${SMTP_STARTTLS:false}
+
+  devtools:
+    restart:
+      enabled: true
+      exclude: "static/**,public/**,templates/**"
+    livereload:
+      enabled: true
+  thymeleaf:
+    cache: false
+  freemarker:
+    cache: false
+
+identity:
+  issuer-uri: ${IDENTITY_ISSUER_URI}
+  admin:
+    email: ${IDENTITY_ADMIN_EMAIL}
+    name: ${IDENTITY_ADMIN_NAME}
+    password: ${IDENTITY_ADMIN_PASSWORD}
+  email:
+    from: ${IDENTITY_EMAIL_FROM}
+    frontend-url: ${FRONTEND_BASE_URL}
+  rate-limit:
+    per-ip: ${IDENTITY_RATE_LIMIT_PER_IP:30}
+    per-identity: ${IDENTITY_RATE_LIMIT_PER_IDENTITY:10}
+    window: ${IDENTITY_RATE_LIMIT_WINDOW:PT15M}
+  client:
+    id: ${IDENTITY_CLIENT_ID}
+    secret: ${IDENTITY_CLIENT_SECRET}
+    redirect-uri: ${IDENTITY_CLIENT_REDIRECT_URI}
+  signing-key:
+    store: ${IDENTITY_SIGNING_KEY_STORE}
+    store-password: ${IDENTITY_SIGNING_KEY_STORE_PASSWORD}
+    alias: ${IDENTITY_SIGNING_KEY_ALIAS}
+  cookie-secure: ${IDENTITY_COOKIE_SECURE:true}
+
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        http-only: true
+        secure: ${IDENTITY_COOKIE_SECURE:true}
+        same-site: lax

@@ -1,0 +1,11 @@
+spring:
+  devtools:
+    restart:
+      enabled: false
+      exclude: "static/**,public/**,templates/**"
+    livereload:
+      enabled: false
+  thymeleaf:
+    cache: true
+  freemarker:
+    cache: true

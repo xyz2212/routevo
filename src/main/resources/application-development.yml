@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/routevo_development
+    username: routevo
+    password: routevo
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+
+identity:
+  cookie-secure: false
+
+server:
+  servlet:
+    session:
+        cookie:
+          secure: false
+
+logging:
+  level:
+    web: DEBUG

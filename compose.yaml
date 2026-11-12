@@ -1,0 +1,46 @@
+name: routevo
+
+x-common-config: &common-config
+  env_file:
+    - .docker.env
+
+services:
+  elasticsearch:
+    image: 'docker.elastic.co/elasticsearch/elasticsearch:9.3.3'
+    environment:
+      - 'ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-secret}'
+      - 'discovery.type=single-node'
+      - 'xpack.security.enabled=false'
+    ports:
+      - '9200'
+      - '9300'
+  kafka:
+    image: 'apache/kafka-native:3.9.0'
+    environment:
+      - 'KAFKA_NODE_ID=1'
+      - 'KAFKA_PROCESS_ROLES=broker,controller'
+      - 'KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:9093'
+      - 'KAFKA_LISTENERS=PLAINTEXT://127.0.0.1:9092,CONTROLLER://127.0.0.1:9093'
+      - 'KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092'
+      - 'KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
+      - 'KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER'
+      - 'KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT'
+      - 'KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1'
+      - 'KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1'
+      - 'KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1'
+      - 'KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0'
+      - 'KAFKA_NUM_PARTITIONS=3'
+    labels:
+      - "org.springframework.boot.service-connection=kafka"
+    ports:
+      - '9092:9092'
+  pgvector:
+    image: 'pgvector/pgvector:pg16'
+    environment:
+      - 'POSTGRES_DB=${DATABASE_NAME:-routevo_development}'
+      - 'POSTGRES_PASSWORD=${DATABASE_PASSWORD:-routevo}'
+      - 'POSTGRES_USER=${DATABASE_USER:-routevo}'
+    labels:
+      - "org.springframework.boot.service-connection=postgres"
+    ports:
+      - '5432'
