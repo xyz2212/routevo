@@ -48,6 +48,8 @@ identity:
     per-ip: ${IDENTITY_RATE_LIMIT_PER_IP:30}
     per-identity: ${IDENTITY_RATE_LIMIT_PER_IDENTITY:10}
     window: ${IDENTITY_RATE_LIMIT_WINDOW:PT15M}
+  mfa:
+    encryption-key: ${IDENTITY_MFA_ENCRYPTION_KEY}
   client:
     id: ${IDENTITY_CLIENT_ID}
     secret: ${IDENTITY_CLIENT_SECRET}

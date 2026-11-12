@@ -23,6 +23,7 @@ p { color: #536871; line-height: 1.55; }
 form { display: grid; gap: 16px; margin-top: 24px; }
 label { display: grid; gap: 7px; color: #304952; font-size: 0.92rem; font-weight: 600; }
 input { width: 100%; border: 1px solid #c8d6d3; border-radius: 9px; font: inherit; padding: 12px; }
+select { width: 100%; border: 1px solid #c8d6d3; border-radius: 9px; font: inherit; padding: 12px; }
 input:focus { border-color: #168174; outline: 3px solid #16817426; }
 button { background: #136b60; border: 0; border-radius: 9px; color: white; cursor: pointer; font: inherit; font-weight: 700; padding: 13px 18px; }
 button:disabled { cursor: wait; opacity: 0.7; }
@@ -33,6 +34,13 @@ ol { color: #536871; line-height: 1.7; padding-left: 22px; }
 .notice { background: #eaf6f0; color: #185f45; }
 .error { background: #fff0ef; color: #963b35; }
 .callout { background: #fff7e6; color: #73510c; }
+.recovery-codes { background: #f3f6f5; border-radius: 9px; font-family: ui-monospace, monospace; line-height: 1.8; padding: 16px 16px 16px 36px; }
+.application-list { display: grid; gap: 12px; list-style: none; padding: 0; }
+.application-card { background: #f7faf9; border: 1px solid #dfe8e6; border-radius: 10px; padding: 14px; }
+.application-card form { margin-top: 16px; }
+.review-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.review-actions button { padding: 10px 12px; }
+.button-link { background: #136b60; border-radius: 9px; color: white; display: inline-block; font-weight: 700; padding: 13px 18px; text-decoration: none; }
 footer { margin: 18px 4px; }
 
 @media (max-width: 480px) {

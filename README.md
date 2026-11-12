@@ -13,7 +13,8 @@ Boot, PostgreSQL, and a React account interface.
 5. Start the development services with `docker compose up -d`, then run
    `npm run dev`.
 
-The current UI supports account registration, email verification, sign-in, and
-password recovery. Delivery operations, driver onboarding, and administrator
-MFA are not enabled yet. Read the [onboarding guide](./docs/onboarding.md) for
-the current status of customer, driver, and administrator paths.
+The current UI supports account registration, email verification, sign-in,
+password recovery, administrator TOTP MFA, and metadata-only driver
+applications/review. Driver activation and delivery operations are not enabled.
+Read the [onboarding guide](./docs/onboarding.md) for the current status of
+customer, driver, and administrator paths.

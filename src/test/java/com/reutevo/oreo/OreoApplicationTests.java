@@ -2,7 +2,12 @@ package com.reutevo.oreo;
 
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -34,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -70,6 +76,8 @@ class OreoApplicationTests {
 		registry.add("identity.email.from", () -> "no-reply@example.test");
 		registry.add("identity.email.frontend-url", () -> "https://app.example.test");
 		registry.add("identity.cookie-secure", () -> false);
+		registry.add("identity.mfa.encryption-key", () -> java.util.Base64.getEncoder()
+				.encodeToString(new byte[32]));
 		registry.add("server.servlet.session.cookie.secure", () -> false);
 		registry.add("identity.client.id", () -> "test-client");
 		registry.add("identity.client.secret", () -> "test-client-secret");
@@ -260,11 +268,15 @@ class OreoApplicationTests {
 		IdentityUser user = users.findById("admin@example.test").orElseThrow();
 		assertTrue(passwordEncoder.matches("test-password", user.getPassword()));
 
-		mockMvc.perform(post("/login")
+		MvcResult formLogin = mockMvc.perform(post("/login")
 						.param("username", "admin@example.test")
 						.param("password", "test-password")
 						.with(csrf()))
-				.andExpect(status().is3xxRedirection());
+				.andExpect(redirectedUrl("/app/#/login"))
+				.andReturn();
+		mockMvc.perform(get("/api/auth/me")
+						.session((MockHttpSession) formLogin.getRequest().getSession(false)))
+				.andExpect(status().isUnauthorized());
 	}
 
 	@Test
@@ -276,12 +288,33 @@ class OreoApplicationTests {
 		assertNotNull(csrfCookie);
 		String csrfToken = new ObjectMapper().readTree(csrfResult.getResponse().getContentAsString())
 				.get("token").asText();
+		mockMvc.perform(post("/api/auth/register")
+						.cookie(csrfCookie)
+						.header("X-XSRF-TOKEN", csrfToken)
+						.contentType("application/json")
+						.content("""
+								{
+								  "name": "BFF Customer",
+								  "email": "bff-customer@example.test",
+								  "password": "CorrectHorseBattery9!"
+								}
+								"""))
+				.andExpect(status().isAccepted());
+		mockMvc.perform(post("/api/auth/verify-email")
+						.cookie(csrfCookie)
+						.header("X-XSRF-TOKEN", csrfToken)
+						.contentType("application/json")
+						.content("""
+								{"token": "%s"}
+								""".formatted(emailDelivery.lastVerification().token())))
+				.andExpect(status().isOk());
+
 		MvcResult login = mockMvc.perform(post("/api/auth/login")
 						.cookie(csrfCookie)
 						.header("X-XSRF-TOKEN", csrfToken)
 						.contentType("application/json")
 						.content("""
-								{"email": "admin@example.test", "password": "test-password"}
+								{"email": "bff-customer@example.test", "password": "CorrectHorseBattery9!"}
 								"""))
 				.andExpect(status().isOk())
 				.andReturn();
@@ -289,12 +322,219 @@ class OreoApplicationTests {
 
 		mockMvc.perform(get("/api/auth/me").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.email").value("admin@example.test"))
-				.andExpect(jsonPath("$.roles[0]").value("ADMIN"));
+				.andExpect(jsonPath("$.email").value("bff-customer@example.test"))
+				.andExpect(jsonPath("$.roles[0]").value("CUSTOMER"))
+				.andExpect(jsonPath("$.mfaSetupRequired").value(false));
 
 		mockMvc.perform(post("/api/auth/logout").with(csrf()).session(session))
 				.andExpect(status().isNoContent());
 		mockMvc.perform(get("/api/auth/me"))
+				.andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void customerCanApplyAndAdminCanReviewWithoutActivatingDriverAccess() throws Exception {
+		mockMvc.perform(post("/api/auth/register")
+						.with(csrf())
+						.contentType("application/json")
+						.content("""
+								{
+								  "name": "Driver Applicant",
+								  "email": "driver-applicant@example.test",
+								  "phone": "+852 5555 0101",
+								  "password": "CorrectHorseBattery9!"
+								}
+								"""))
+				.andExpect(status().isAccepted());
+		mockMvc.perform(post("/api/auth/verify-email")
+						.with(csrf())
+						.contentType("application/json")
+						.content("""
+								{"token": "%s"}
+								""".formatted(emailDelivery.lastVerification().token())))
+				.andExpect(status().isOk());
+		MvcResult login = mockMvc.perform(post("/api/auth/login")
+						.with(csrf())
+						.contentType("application/json")
+						.content("""
+								{"email": "driver-applicant@example.test", "password": "CorrectHorseBattery9!"}
+								"""))
+				.andExpect(status().isOk())
+				.andReturn();
+		MockHttpSession driverSession = (MockHttpSession) login.getRequest().getSession(false);
+
+		MvcResult application = mockMvc.perform(post("/api/auth/driver-application")
+						.with(csrf())
+						.session(driverSession)
+						.contentType("application/json")
+						.content("""
+								{"vehicleType": "BICYCLE", "serviceArea": "Central and Western"}
+								"""))
+				.andExpect(status().isAccepted())
+				.andExpect(jsonPath("$.status").value("PENDING"))
+				.andReturn();
+		String applicationId = new ObjectMapper()
+				.readTree(application.getResponse().getContentAsString()).get("id").asText();
+		mockMvc.perform(post("/api/auth/driver-application")
+						.with(csrf())
+						.session(driverSession)
+						.contentType("application/json")
+						.content("""
+								{"vehicleType": "BICYCLE", "serviceArea": "Central and Western"}
+								"""))
+				.andExpect(status().isConflict());
+
+		mockMvc.perform(get("/api/auth/admin/driver-applications")
+						.with(user("admin@example.test").roles("ADMIN")))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[?(@.id == '%s')].applicantEmail".formatted(applicationId))
+						.value(org.hamcrest.Matchers.contains("driver-applicant@example.test")));
+		mockMvc.perform(get("/api/auth/admin/driver-applications").session(driverSession))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/api/auth/admin/driver-applications/{id}/review", applicationId)
+						.with(csrf())
+						.with(user("admin@example.test").roles("ADMIN"))
+						.contentType("application/json")
+						.content("""
+								{"outcome": "NEEDS_INFORMATION"}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("NEEDS_INFORMATION"));
+		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+						.put("/api/auth/driver-application")
+						.with(csrf())
+						.session(driverSession)
+						.contentType("application/json")
+						.content("""
+								{"vehicleType": "MOTORCYCLE", "serviceArea": "Yau Tsim Mong"}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("PENDING"));
+		mockMvc.perform(post("/api/auth/admin/driver-applications/{id}/review", applicationId)
+						.with(csrf())
+						.with(user("admin@example.test").roles("ADMIN"))
+						.contentType("application/json")
+						.content("""
+								{"outcome": "APPROVED_PENDING_LAUNCH_GATES"}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("APPROVED_PENDING_LAUNCH_GATES"));
+		mockMvc.perform(post("/api/auth/admin/driver-applications/{id}/review", applicationId)
+						.with(csrf())
+						.with(user("admin@example.test").roles("ADMIN"))
+						.contentType("application/json")
+						.content("""
+								{"outcome": "REJECTED"}
+								"""))
+				.andExpect(status().isConflict());
+
+		mockMvc.perform(get("/api/auth/driver-application").session(driverSession))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("APPROVED_PENDING_LAUNCH_GATES"));
+		mockMvc.perform(get("/api/auth/me").session(driverSession))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.roles").value(org.hamcrest.Matchers.contains("CUSTOMER")));
+	}
+
+	@Test
+	void administratorMustEnrollAndVerifyTotpBeforeReceivingAnAdminSession() throws Exception {
+		MvcResult setupLogin = mockMvc.perform(post("/api/auth/login")
+						.with(csrf())
+						.contentType("application/json")
+						.content("""
+								{"email": "admin@example.test", "password": "test-password"}
+								"""))
+				.andExpect(status().isAccepted())
+				.andExpect(jsonPath("$.stage").value("MFA_SETUP_REQUIRED"))
+				.andReturn();
+		MockHttpSession setupSession = (MockHttpSession) setupLogin.getRequest().getSession(false);
+		mockMvc.perform(get("/api/auth/me").session(setupSession))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.roles.length()").value(0))
+				.andExpect(jsonPath("$.mfaSetupRequired").value(true));
+
+		MvcResult enrollment = mockMvc.perform(post("/api/auth/mfa/enrollment")
+						.with(csrf())
+						.session(setupSession))
+				.andExpect(status().isOk())
+				.andReturn();
+		String secret = new ObjectMapper().readTree(enrollment.getResponse().getContentAsString())
+				.get("secret").asText();
+		String setupCode = totp(secret, Instant.now());
+		MvcResult enrolled = mockMvc.perform(post("/api/auth/mfa/enrollment/confirm")
+						.with(csrf())
+						.session(setupSession)
+						.contentType("application/json")
+						.content("""
+								{"code": "%s"}
+								""".formatted(setupCode)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.recoveryCodes.length()").value(10))
+				.andReturn();
+		String recoveryCode = new ObjectMapper().readTree(enrolled.getResponse().getContentAsString())
+				.get("recoveryCodes").get(0).asText();
+
+		MvcResult mfaLogin = mockMvc.perform(post("/api/auth/login")
+						.with(csrf())
+						.contentType("application/json")
+						.content("""
+								{"email": "admin@example.test", "password": "test-password"}
+								"""))
+				.andExpect(status().isAccepted())
+				.andExpect(jsonPath("$.stage").value("MFA_REQUIRED"))
+				.andReturn();
+		MockHttpSession mfaSession = (MockHttpSession) mfaLogin.getRequest().getSession(false);
+		mockMvc.perform(get("/api/auth/me").session(mfaSession))
+				.andExpect(status().isUnauthorized());
+
+		mockMvc.perform(post("/api/auth/mfa/verify")
+						.with(csrf())
+						.session(mfaSession)
+						.contentType("application/json")
+						.content("""
+								{"code": "%s"}
+								""".formatted(totp(secret, Instant.now()))))
+				.andExpect(status().isOk());
+		mockMvc.perform(get("/api/auth/me").session(mfaSession))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.roles[0]").value("ADMIN"));
+
+		mockMvc.perform(post("/api/auth/logout").with(csrf()).session(mfaSession))
+				.andExpect(status().isNoContent());
+		MvcResult recoveryLogin = mockMvc.perform(post("/api/auth/login")
+						.with(csrf())
+						.contentType("application/json")
+						.content("""
+								{"email": "admin@example.test", "password": "test-password"}
+								"""))
+				.andExpect(status().isAccepted())
+				.andReturn();
+		MockHttpSession recoverySession = (MockHttpSession) recoveryLogin.getRequest().getSession(false);
+		mockMvc.perform(post("/api/auth/mfa/verify")
+						.with(csrf())
+						.session(recoverySession)
+						.contentType("application/json")
+						.content("""
+								{"code": "%s"}
+								""".formatted(recoveryCode)))
+				.andExpect(status().isOk());
+
+		MvcResult replayLogin = mockMvc.perform(post("/api/auth/login")
+						.with(csrf())
+						.contentType("application/json")
+						.content("""
+								{"email": "admin@example.test", "password": "test-password"}
+								"""))
+				.andExpect(status().isAccepted())
+				.andReturn();
+		MockHttpSession replaySession = (MockHttpSession) replayLogin.getRequest().getSession(false);
+		mockMvc.perform(post("/api/auth/mfa/verify")
+						.with(csrf())
+						.session(replaySession)
+						.contentType("application/json")
+						.content("""
+								{"code": "%s"}
+								""".formatted(recoveryCode)))
 				.andExpect(status().isUnauthorized());
 	}
 
@@ -415,6 +655,40 @@ class OreoApplicationTests {
 		catch (URISyntaxException exception) {
 			throw new IllegalStateException("Could not resolve the test signing keystore", exception);
 		}
+	}
+
+	private static String totp(String base32Secret, Instant now) throws Exception {
+		String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+		String normalized = base32Secret.replace("=", "").toUpperCase(java.util.Locale.ROOT);
+		List<Byte> secretBytes = new ArrayList<>();
+		int buffer = 0;
+		int bits = 0;
+		for (char character : normalized.toCharArray()) {
+			buffer = (buffer << 5) | alphabet.indexOf(character);
+			bits += 5;
+			if (bits >= 8) {
+				secretBytes.add((byte) (buffer >> (bits - 8)));
+				bits -= 8;
+			}
+		}
+		byte[] counter = ByteBuffer.allocate(Long.BYTES).putLong(now.getEpochSecond() / 30).array();
+		Mac hmac = Mac.getInstance("HmacSHA1");
+		hmac.init(new SecretKeySpec(toByteArray(secretBytes), "HmacSHA1"));
+		byte[] digest = hmac.doFinal(counter);
+		int offset = digest[digest.length - 1] & 0x0f;
+		int binary = ((digest[offset] & 0x7f) << 24)
+				| ((digest[offset + 1] & 0xff) << 16)
+				| ((digest[offset + 2] & 0xff) << 8)
+				| (digest[offset + 3] & 0xff);
+		return "%06d".formatted(binary % 1_000_000);
+	}
+
+	private static byte[] toByteArray(List<Byte> values) {
+		byte[] bytes = new byte[values.size()];
+		for (int index = 0; index < values.size(); index++) {
+			bytes[index] = values.get(index);
+		}
+		return bytes;
 	}
 
 	@TestConfiguration

@@ -25,9 +25,21 @@ password is BCrypt-hashed and is not reset from the environment on subsequent
 starts. OAuth client registrations are still held in memory and recreated at
 startup; they are not yet database-backed.
 
-Driver onboarding, admin MFA, and customer/driver/admin onboarding screens are
-not implemented yet. Do not treat this identity slice as launch-ready for
-driver or administrator operations.
+Administrator accounts must enroll a TOTP authenticator before receiving an
+administrator session. Authenticator secrets are encrypted at rest using
+`IDENTITY_MFA_ENCRYPTION_KEY`; one-time recovery codes are stored as hashes.
+Generate a unique 32-byte key, Base64-encode it, and keep it in protected
+deployment configuration. Losing this key makes stored authenticator secrets
+unusable. Recovery codes are shown only once during enrollment.
+
+Verified customers can submit one metadata-only driver application with their
+vehicle type and service area. Their existing account name, email, and optional
+phone are visible to administrators. Applications support a request for more
+information, provisional approval pending launch gates, or rejection.
+Provisional approval does not grant a driver role or enable deliveries.
+Identity documents and vehicle identifiers are not collected. Configure
+private document storage, compliance requirements, and operational controls
+before enabling driver activation or delivery operations.
 
 The account UI is a React application served from `/app/`. Build it before
 packaging the Spring application:
@@ -58,6 +70,7 @@ configuration source:
 | `IDENTITY_RATE_LIMIT_PER_IP` | Maximum requests per IP and action in the configured window (default `30`). |
 | `IDENTITY_RATE_LIMIT_PER_IDENTITY` | Maximum requests per normalized email and action (default `10`). |
 | `IDENTITY_RATE_LIMIT_WINDOW` | ISO-8601 rate-limit window (default `PT15M`). |
+| `IDENTITY_MFA_ENCRYPTION_KEY` | Base64-encoded 32-byte AES key used to encrypt administrator TOTP secrets. |
 | `IDENTITY_CLIENT_ID` | OAuth client identifier. |
 | `IDENTITY_CLIENT_SECRET` | OAuth client secret. |
 | `IDENTITY_CLIENT_REDIRECT_URI` | Exact callback URL registered for the client. |

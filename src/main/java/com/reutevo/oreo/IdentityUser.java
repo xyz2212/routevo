@@ -37,6 +37,15 @@ public class IdentityUser {
 	@Column(name = "email_verified_at")
 	private Instant emailVerifiedAt;
 
+	@Column(name = "mfa_secret_ciphertext", length = 256)
+	private String mfaSecretCiphertext;
+
+	@Column(name = "mfa_enabled_at")
+	private Instant mfaEnabledAt;
+
+	@Column(name = "mfa_setup_expires_at")
+	private Instant mfaSetupExpiresAt;
+
 	@ElementCollection
 	@CollectionTable(name = "identity_user_roles", joinColumns = @JoinColumn(name = "username"))
 	@Column(name = "role", nullable = false, length = 32)
@@ -80,6 +89,31 @@ public class IdentityUser {
 
 	public boolean isEmailVerified() {
 		return emailVerifiedAt != null;
+	}
+
+	public boolean isMfaEnabled() {
+		return mfaEnabledAt != null;
+	}
+
+	public String getMfaSecretCiphertext() {
+		return mfaSecretCiphertext;
+	}
+
+	public Instant getMfaSetupExpiresAt() {
+		return mfaSetupExpiresAt;
+	}
+
+	public void startMfaEnrollment(String encryptedSecret, Instant expiresAt) {
+		if (isMfaEnabled()) {
+			throw new IllegalStateException("MFA is already enabled");
+		}
+		mfaSecretCiphertext = encryptedSecret;
+		mfaSetupExpiresAt = expiresAt;
+	}
+
+	public void enableMfa(Instant enabledAt) {
+		mfaEnabledAt = enabledAt;
+		mfaSetupExpiresAt = null;
 	}
 
 	public void verifyEmail(Instant verifiedAt) {

@@ -27,8 +27,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
@@ -36,6 +38,8 @@ import org.springframework.security.web.authentication.session.CompositeSessionA
 import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -169,7 +173,12 @@ public class SecurityConfiguration {
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers("/api/auth/register", "/api/auth/verify-email",
 								"/api/auth/resend-verification", "/api/auth/forgot-password",
-								"/api/auth/reset-password", "/api/auth/login", "/api/auth/csrf").permitAll()
+								"/api/auth/reset-password", "/api/auth/login", "/api/auth/csrf",
+								"/api/auth/mfa/verify").permitAll()
+						.requestMatchers("/api/auth/mfa/enrollment",
+								"/api/auth/mfa/enrollment/confirm").hasAuthority("MFA_SETUP_REQUIRED")
+						.requestMatchers("/api/auth/admin/driver-applications/**").hasRole("ADMIN")
+						.requestMatchers("/api/auth/driver-application").hasRole("CUSTOMER")
 						.anyRequest().authenticated())
 				.securityContext(securityContext -> securityContext
 						.securityContextRepository(securityContextRepository))
@@ -214,7 +223,13 @@ public class SecurityConfiguration {
 				.with(authorizationServerConfigurer, authorizationServer ->
 						authorizationServer.oidc(Customizer.withDefaults()))
 				.authorizeHttpRequests(authorize -> authorize
-						.anyRequest().authenticated())
+						.anyRequest().access((authentication, context) -> {
+							Authentication current = authentication.get();
+							boolean mfaSetupOnly = current != null && current.getAuthorities().stream()
+									.anyMatch(authority -> authority.getAuthority().equals("MFA_SETUP_REQUIRED"));
+							return new AuthorizationDecision(
+									current != null && current.isAuthenticated() && !mfaSetupOnly);
+						}))
 				.exceptionHandling(exceptions -> exceptions
 						.defaultAuthenticationEntryPointFor(
 								new LoginUrlAuthenticationEntryPoint("/login"),
@@ -225,7 +240,10 @@ public class SecurityConfiguration {
 
 	@Bean
 	@Order(2)
-	SecurityFilterChain applicationSecurityFilterChain(HttpSecurity http, SessionRegistry sessionRegistry)
+	SecurityFilterChain applicationSecurityFilterChain(
+			HttpSecurity http,
+			SessionRegistry sessionRegistry,
+			SecurityContextRepository securityContextRepository)
 			throws Exception {
 		http
 				.authorizeHttpRequests(authorize -> authorize
@@ -233,7 +251,20 @@ public class SecurityConfiguration {
 						.anyRequest().authenticated())
 				.sessionManagement(session -> session.maximumSessions(-1)
 						.sessionRegistry(sessionRegistry))
-				.formLogin(Customizer.withDefaults());
+				.formLogin(form -> form.successHandler((request, response, authentication) -> {
+					boolean administrator = authentication.getAuthorities().stream()
+							.anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+					if (administrator) {
+						SecurityContextHolder.clearContext();
+						securityContextRepository.saveContext(
+								SecurityContextHolder.createEmptyContext(), request, response);
+						response.sendRedirect("/app/#/login");
+					}
+					else {
+						new SavedRequestAwareAuthenticationSuccessHandler()
+								.onAuthenticationSuccess(request, response, authentication);
+					}
+				}));
 
 		return http.build();
 	}

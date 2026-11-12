@@ -13,14 +13,25 @@
 
 ## Driver
 
-Driver applications, identity-document collection, and approval are not
-available yet. Do not send identity, licence, vehicle, or insurance documents
-through email or this site. Driver onboarding will open after private document
-storage, compliance requirements, and administrator review are configured.
+1. Register and verify a customer account, then sign in at `/app/`.
+2. Apply with your vehicle type and Hong Kong service area. Your account name,
+   email, and optional phone number are shared with administrators reviewing
+   the application.
+3. If an administrator requests more information, update the vehicle type or
+   service area in the application panel.
+4. An approval is provisional: it does not grant driver access or enable
+   deliveries. Private document storage, compliance requirements, and
+   operational controls must be configured before driver activation.
+
+Do not submit identity, licence, vehicle-registration, or insurance documents
+through this site or by email. The application currently collects metadata
+only.
 
 ## Administrator
 
 The initial administrator account is provisioned from protected deployment
-configuration. Do not share its credentials or use it for day-to-day customer
-activity. Administrator MFA and operational review tools are not available
-yet, so administrator access must not be used for live delivery operations.
+configuration. On first sign-in, enroll an authenticator app and save the
+one-time recovery codes in a private location. Driver applications can be
+reviewed from the onboarding panel; review decisions do not activate driver
+accounts. Do not share administrator credentials or use them for day-to-day
+customer activity. Delivery booking and live operations remain disabled.
