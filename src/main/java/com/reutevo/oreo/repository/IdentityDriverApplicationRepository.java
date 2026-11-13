@@ -1,5 +1,6 @@
-package com.reutevo.oreo.driver;
+package com.reutevo.oreo.repository;
 
+import com.reutevo.oreo.entity.IdentityDriverApplication;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

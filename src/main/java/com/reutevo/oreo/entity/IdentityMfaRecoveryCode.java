@@ -1,4 +1,4 @@
-package com.reutevo.oreo.mfa;
+package com.reutevo.oreo.entity;
 
 import java.time.Instant;
 import java.util.UUID;

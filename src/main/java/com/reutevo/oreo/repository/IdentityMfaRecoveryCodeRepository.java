@@ -1,5 +1,6 @@
-package com.reutevo.oreo.mfa;
+package com.reutevo.oreo.repository;
 
+import com.reutevo.oreo.entity.IdentityMfaRecoveryCode;
 import java.util.Optional;
 import java.util.UUID;
 

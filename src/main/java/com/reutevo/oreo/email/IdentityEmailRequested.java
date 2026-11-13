@@ -1,6 +1,6 @@
 package com.reutevo.oreo.email;
 
-import com.reutevo.oreo.account.IdentityActionToken;
+import com.reutevo.oreo.entity.IdentityActionToken;
 
 public record IdentityEmailRequested(
 		String email,

@@ -1,8 +1,10 @@
-package com.reutevo.oreo.admin;
+package com.reutevo.oreo.service;
 
-import com.reutevo.oreo.account.IdentityActionToken;
-import com.reutevo.oreo.account.IdentityUser;
-import com.reutevo.oreo.account.IdentityUserRepository;
+import com.reutevo.oreo.entity.IdentityActionToken;
+import com.reutevo.oreo.entity.IdentityAdminInvitation;
+import com.reutevo.oreo.entity.IdentityUser;
+import com.reutevo.oreo.repository.IdentityAdminInvitationRepository;
+import com.reutevo.oreo.repository.IdentityUserRepository;
 import com.reutevo.oreo.common.PasswordPolicy;
 import com.reutevo.oreo.common.Sha256Hex;
 import com.reutevo.oreo.email.IdentityEmailRequested;

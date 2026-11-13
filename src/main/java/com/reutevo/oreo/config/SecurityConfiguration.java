@@ -1,4 +1,4 @@
-package com.reutevo.oreo.security;
+package com.reutevo.oreo.config;
 
 import java.io.IOException;
 import java.io.InputStream;

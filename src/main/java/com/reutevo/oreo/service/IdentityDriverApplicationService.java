@@ -1,8 +1,13 @@
-package com.reutevo.oreo.driver;
+package com.reutevo.oreo.service;
 
-import com.reutevo.oreo.account.IdentityRole;
-import com.reutevo.oreo.account.IdentityUser;
-import com.reutevo.oreo.account.IdentityUserRepository;
+import com.reutevo.oreo.entity.DriverApplicationReviewOutcome;
+import com.reutevo.oreo.entity.DriverApplicationStatus;
+import com.reutevo.oreo.entity.DriverVehicleType;
+import com.reutevo.oreo.entity.IdentityDriverApplication;
+import com.reutevo.oreo.entity.IdentityRole;
+import com.reutevo.oreo.entity.IdentityUser;
+import com.reutevo.oreo.repository.IdentityDriverApplicationRepository;
+import com.reutevo.oreo.repository.IdentityUserRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;

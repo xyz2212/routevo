@@ -1,8 +1,7 @@
-package com.reutevo.oreo.security;
+package com.reutevo.oreo.service;
 
-import com.reutevo.oreo.account.IdentityRole;
-import com.reutevo.oreo.account.IdentityUser;
-import com.reutevo.oreo.account.IdentityUserRepository;
+import com.reutevo.oreo.entity.IdentityUser;
+import com.reutevo.oreo.repository.IdentityUserRepository;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

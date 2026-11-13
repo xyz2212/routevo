@@ -1,4 +1,4 @@
-package com.reutevo.oreo.driver;
+package com.reutevo.oreo.entity;
 
 public enum DriverApplicationReviewOutcome {
 	NEEDS_INFORMATION,

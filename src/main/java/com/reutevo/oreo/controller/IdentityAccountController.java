@@ -1,11 +1,15 @@
-package com.reutevo.oreo.account;
+package com.reutevo.oreo.controller;
 
-import com.reutevo.oreo.admin.IdentityAdminInvitationService;
+import com.reutevo.oreo.entity.IdentityRole;
+import com.reutevo.oreo.entity.IdentityUser;
+import com.reutevo.oreo.repository.IdentityUserRepository;
+import com.reutevo.oreo.service.IdentityAccountService;
+import com.reutevo.oreo.service.IdentityAdminInvitationService;
+import com.reutevo.oreo.service.IdentityDriverApplicationService;
+import com.reutevo.oreo.service.IdentityMfaService;
+import com.reutevo.oreo.service.DatabaseUserDetailsService;
+import com.reutevo.oreo.service.IdentityRateLimitService;
 import com.reutevo.oreo.common.PasswordPolicy;
-import com.reutevo.oreo.driver.IdentityDriverApplicationService;
-import com.reutevo.oreo.mfa.IdentityMfaService;
-import com.reutevo.oreo.security.DatabaseUserDetailsService;
-import com.reutevo.oreo.security.IdentityRateLimitService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;

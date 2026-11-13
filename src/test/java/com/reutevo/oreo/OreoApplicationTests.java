@@ -1,8 +1,8 @@
 package com.reutevo.oreo;
 
-import com.reutevo.oreo.account.IdentityUser;
-import com.reutevo.oreo.account.IdentityUserRepository;
+import com.reutevo.oreo.entity.IdentityUser;
 import com.reutevo.oreo.email.IdentityEmailDelivery;
+import com.reutevo.oreo.repository.IdentityUserRepository;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.ByteBuffer;

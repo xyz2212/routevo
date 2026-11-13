@@ -1,7 +1,9 @@
-package com.reutevo.oreo.mfa;
+package com.reutevo.oreo.service;
 
-import com.reutevo.oreo.account.IdentityUser;
-import com.reutevo.oreo.account.IdentityUserRepository;
+import com.reutevo.oreo.entity.IdentityMfaRecoveryCode;
+import com.reutevo.oreo.entity.IdentityUser;
+import com.reutevo.oreo.repository.IdentityMfaRecoveryCodeRepository;
+import com.reutevo.oreo.repository.IdentityUserRepository;
 import com.reutevo.oreo.common.Sha256Hex;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;

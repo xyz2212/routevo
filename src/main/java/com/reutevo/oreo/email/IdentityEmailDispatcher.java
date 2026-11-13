@@ -1,6 +1,6 @@
 package com.reutevo.oreo.email;
 
-import com.reutevo.oreo.account.IdentityActionToken;
+import com.reutevo.oreo.entity.IdentityActionToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.MailException;

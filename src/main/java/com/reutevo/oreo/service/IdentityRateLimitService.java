@@ -1,4 +1,4 @@
-package com.reutevo.oreo.security;
+package com.reutevo.oreo.service;
 
 import com.reutevo.oreo.common.Sha256Hex;
 import java.time.Duration;

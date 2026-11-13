@@ -1,5 +1,6 @@
-package com.reutevo.oreo.account;
+package com.reutevo.oreo.repository;
 
+import com.reutevo.oreo.entity.IdentityUser;
 import java.util.Optional;
 
 import jakarta.persistence.LockModeType;

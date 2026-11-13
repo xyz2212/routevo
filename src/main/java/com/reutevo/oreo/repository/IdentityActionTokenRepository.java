@@ -1,5 +1,6 @@
-package com.reutevo.oreo.account;
+package com.reutevo.oreo.repository;
 
+import com.reutevo.oreo.entity.IdentityActionToken;
 import java.util.Optional;
 import java.time.Instant;
 import java.util.UUID;

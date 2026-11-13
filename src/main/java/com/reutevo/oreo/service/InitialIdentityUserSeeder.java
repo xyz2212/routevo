@@ -1,5 +1,7 @@
-package com.reutevo.oreo.account;
+package com.reutevo.oreo.service;
 
+import com.reutevo.oreo.entity.IdentityUser;
+import com.reutevo.oreo.repository.IdentityUserRepository;
 import com.reutevo.oreo.common.PasswordPolicy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;

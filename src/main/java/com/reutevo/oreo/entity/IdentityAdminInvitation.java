@@ -1,4 +1,4 @@
-package com.reutevo.oreo.admin;
+package com.reutevo.oreo.entity;
 
 import java.time.Instant;
 

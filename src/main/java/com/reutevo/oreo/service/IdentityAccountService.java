@@ -1,9 +1,12 @@
-package com.reutevo.oreo.account;
+package com.reutevo.oreo.service;
 
+import com.reutevo.oreo.entity.IdentityActionToken;
+import com.reutevo.oreo.entity.IdentityUser;
+import com.reutevo.oreo.repository.IdentityActionTokenRepository;
+import com.reutevo.oreo.repository.IdentityUserRepository;
 import com.reutevo.oreo.common.PasswordPolicy;
 import com.reutevo.oreo.common.Sha256Hex;
 import com.reutevo.oreo.email.IdentityEmailRequested;
-import com.reutevo.oreo.security.IdentitySessionRevoker;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;

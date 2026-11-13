@@ -1,5 +1,6 @@
-package com.reutevo.oreo.admin;
+package com.reutevo.oreo.repository;
 
+import com.reutevo.oreo.entity.IdentityAdminInvitation;
 import java.util.Optional;
 
 import jakarta.persistence.LockModeType;
