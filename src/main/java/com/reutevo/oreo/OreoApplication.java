@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(exclude = { PgVectorStoreAutoConfiguration.class })
 @EnableScheduling
+@EnableConfigurationProperties({ ApplicationProperties.class })
 public class OreoApplication {
 
 	public static void main(String[] args) {
